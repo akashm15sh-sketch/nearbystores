@@ -39,7 +39,7 @@ exports.sendOTP = async (req, res) => {
 // Verify OTP and Register
 exports.register = async (req, res) => {
     try {
-        const { email, phone, otp, username, password } = req.body;
+        const { email, phone, otp, username, password, phoneVerified } = req.body;
 
         // Validate input
         if (!username || !password) {
@@ -52,10 +52,16 @@ exports.register = async (req, res) => {
 
         const identifier = email || phone;
 
-        // Verify OTP
-        const isValidOTP = authService.verifyOTP(identifier, otp);
-        if (!isValidOTP) {
-            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        // Verify OTP — skip if phone was already verified by Firebase
+        if (phoneVerified && phone) {
+            // Phone was verified by Firebase on the frontend, no backend OTP check needed
+            console.log(`[Auth] Phone ${phone} verified via Firebase`);
+        } else {
+            // Email OTP verification (existing flow)
+            const isValidOTP = authService.verifyOTP(identifier, otp);
+            if (!isValidOTP) {
+                return res.status(400).json({ message: 'Invalid or expired OTP' });
+            }
         }
 
         // Check if username is available for this role
