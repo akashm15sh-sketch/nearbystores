@@ -1,0 +1,18 @@
+{
+    "name": "NearbyStores",
+    "short_name": "NearbyStores",
+    "description": "Discover and connect with local businesses near you",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ff6b35",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/icons/customer-icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

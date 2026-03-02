@@ -1,8 +1,8 @@
 /**
  * Resolves a backend-relative image URL (e.g. /uploads/image.jpg)
- * to a full backend URL (e.g. http://localhost:5000/uploads/image.jpg).
+ * to a full backend URL (e.g. https://your-backend.onrender.com/uploads/image.jpg).
  */
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || '';
 
 export function getImageUrl(path: string | undefined | null): string {
     if (!path) return '';
