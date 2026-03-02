@@ -38,21 +38,45 @@ export default function RegisterPage() {
         };
     }, []);
 
+    // Auto-setup reCAPTCHA when phone tab is selected
+    useEffect(() => {
+        if (verifyMethod === 'phone' && step === 'contact') {
+            // Small delay to let the DOM render the container
+            const timer = setTimeout(() => {
+                setupRecaptcha().catch(err => {
+                    console.error('Failed to setup reCAPTCHA:', err);
+                });
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [verifyMethod, step]);
+
     const setupRecaptcha = async () => {
         const { auth, RecaptchaVerifier } = await import('@/lib/firebase');
 
         // Clear existing verifier
         if (recaptchaVerifierRef.current) {
             try { recaptchaVerifierRef.current.clear(); } catch (e) { /* ignore */ }
+            recaptchaVerifierRef.current = null;
         }
 
+        // Clear the container content
+        const container = document.getElementById('recaptcha-container');
+        if (container) container.innerHTML = '';
+
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            size: 'invisible',
+            size: 'normal',
             callback: () => {
-                // reCAPTCHA solved
+                console.log('[Firebase] reCAPTCHA verified');
             },
+            'expired-callback': () => {
+                console.log('[Firebase] reCAPTCHA expired');
+                setError('reCAPTCHA expired. Please try again.');
+            }
         });
 
+        await verifier.render();
         recaptchaVerifierRef.current = verifier;
         return verifier;
     };
@@ -81,23 +105,38 @@ export default function RegisterPage() {
 
         try {
             const { auth, signInWithPhoneNumber } = await import('@/lib/firebase');
-            const verifier = await setupRecaptcha();
+
+            // If no recaptcha verifier exists, set it up first
+            let verifier = recaptchaVerifierRef.current;
+            if (!verifier) {
+                verifier = await setupRecaptcha();
+            }
 
             // Ensure phone has country code
             const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+            console.log('[Firebase] Sending OTP to:', formattedPhone);
 
             const result = await signInWithPhoneNumber(auth, formattedPhone, verifier);
             setConfirmationResult(result);
             setStep('otp');
         } catch (err: any) {
             console.error('Phone OTP error:', err);
-            if (err.code === 'auth/invalid-phone-number') {
-                setError('Invalid phone number. Make sure to include country code (e.g., +91XXXXXXXXXX)');
-            } else if (err.code === 'auth/too-many-requests') {
-                setError('Too many attempts. Please try again later.');
-            } else {
-                setError(err.message || 'Failed to send phone OTP');
-            }
+            console.error('Error code:', err.code);
+            console.error('Error message:', err.message);
+
+            const errorMessages: { [key: string]: string } = {
+                'auth/invalid-phone-number': 'Invalid phone number format. Please enter a valid 10-digit number.',
+                'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+                'auth/captcha-check-failed': 'reCAPTCHA verification failed. Please complete the checkbox and try again.',
+                'auth/quota-exceeded': 'SMS quota exceeded. Firebase free plan has limited SMS. Please try email verification instead.',
+                'auth/missing-phone-number': 'Please enter your phone number.',
+                'auth/internal-error': 'Firebase internal error. Make sure Phone Authentication is enabled in your Firebase Console.',
+                'auth/operation-not-allowed': 'Phone authentication is not enabled. Go to Firebase Console → Authentication → Sign-in method → Enable Phone.',
+                'auth/invalid-app-credential': 'reCAPTCHA verification failed. Please refresh the page and try again.',
+            };
+
+            setError(errorMessages[err.code] || `Error: ${err.message || 'Failed to send OTP. Please try email verification instead.'}`);
+
             // Reset recaptcha on error
             if (recaptchaVerifierRef.current) {
                 try { recaptchaVerifierRef.current.clear(); } catch (e) { /* ignore */ }
@@ -285,6 +324,9 @@ export default function RegisterPage() {
                                         <p className="text-sm text-gray-500 mt-2">We&apos;ll send you a verification code via SMS</p>
                                     </div>
 
+                                    {/* reCAPTCHA widget renders here */}
+                                    <div id="recaptcha-container" ref={recaptchaContainerRef} className="flex justify-center"></div>
+
                                     <button type="submit" className="btn-modern w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg" disabled={loading || phone.length !== 10}>
                                         {loading ? 'Sending...' : 'Send SMS Code'}
                                     </button>
@@ -419,8 +461,7 @@ export default function RegisterPage() {
                     </div>
                 </div>
 
-                {/* Invisible reCAPTCHA container */}
-                <div id="recaptcha-container" ref={recaptchaContainerRef}></div>
+                {/* reCAPTCHA container is now inside the phone form above */}
 
                 {/* Footer */}
                 <p className="text-center text-gray-500 text-sm mt-8">
