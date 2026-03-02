@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import Link from 'next/link';
 
 interface StoreProduct {
     _id?: string;
@@ -227,6 +228,12 @@ export default function AdminStoresPage() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 ml-4">
+                                <Link
+                                    href={`/admin/analytics/${store._id}`}
+                                    className="px-4 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 text-sm font-medium transition-colors"
+                                >
+                                    📊 Analytics
+                                </Link>
                                 <button
                                     onClick={() => { setEditingStore(JSON.parse(JSON.stringify(store))); setActiveTab('info'); }}
                                     className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors"

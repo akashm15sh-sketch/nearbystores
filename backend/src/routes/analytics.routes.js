@@ -11,5 +11,6 @@ router.get('/revenue', protect, adminOnly, analyticsController.getGlobalRevenue)
 router.get('/activities', protect, adminOnly, analyticsController.getUserActivities);
 router.get('/active-users', protect, adminOnly, analyticsController.getActiveUsers);
 router.get('/user/:userId/behavior', protect, adminOnly, analyticsController.getUserBehaviorSummary);
+router.get('/store/:storeId', protect, adminOnly, analyticsController.getStoreAnalytics);
 
 module.exports = router;

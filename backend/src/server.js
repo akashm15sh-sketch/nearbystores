@@ -52,6 +52,11 @@ app.use(express.urlencoded({ extended: true }));
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Health check (for AWS load balancer / monitoring)
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 // Routes
 app.get('/', (req, res) => {
     res.json({
@@ -80,6 +85,8 @@ const supportRoutes = require('./routes/support.routes');
 app.use('/api/support', supportRoutes);
 const analyticsRoutes = require('./routes/analytics.routes');
 app.use('/api/analytics', analyticsRoutes);
+const reviewRoutes = require('./routes/review.routes');
+app.use('/api/reviews', reviewRoutes);
 
 // Socket.io for real-time updates
 io.on('connection', (socket) => {
@@ -112,9 +119,9 @@ app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
 });
 
-// Start server
+// Start server — bind to 0.0.0.0 for EC2/container compatibility
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
 });

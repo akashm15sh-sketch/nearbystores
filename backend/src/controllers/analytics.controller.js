@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Store = require('../models/Store');
 const User = require('../models/User');
 const UserActivity = require('../models/UserActivity');
+const mongoose = require('mongoose');
 
 // Global revenue analytics (admin)
 exports.getGlobalRevenue = async (req, res) => {
@@ -269,5 +270,92 @@ exports.getUserBehaviorSummary = async (req, res) => {
     } catch (error) {
         console.error('Get user behavior error:', error);
         res.status(500).json({ message: 'Failed to get user behavior', error: error.message });
+    }
+};
+
+// Get detailed analytics for a specific store (admin)
+exports.getStoreAnalytics = async (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const { period = 30 } = req.query;
+
+        const store = await Store.findById(storeId);
+        if (!store) return res.status(404).json({ message: 'Store not found' });
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(period));
+        const storeObjectId = new mongoose.Types.ObjectId(storeId);
+
+        const baseMatch = {
+            store: storeObjectId,
+            status: { $in: ['completed', 'delivered'] },
+            createdAt: { $gte: startDate }
+        };
+
+        const [overview, products, hourly, dayOfWeek, dailyTrend, monthlyTrend, weeklyTrend] = await Promise.all([
+            Order.aggregate([
+                { $match: baseMatch },
+                { $group: { _id: null, totalOrders: { $sum: 1 }, totalRevenue: { $sum: '$totalAmount' }, avgOrderValue: { $avg: '$totalAmount' }, deliveryOrders: { $sum: { $cond: [{ $eq: ['$orderType', 'delivery'] }, 1, 0] } }, pickupOrders: { $sum: { $cond: [{ $eq: ['$orderType', 'pickup'] }, 1, 0] } } } }
+            ]),
+            Order.aggregate([
+                { $match: baseMatch }, { $unwind: '$items' },
+                { $group: { _id: '$items.productName', totalQuantity: { $sum: '$items.quantity' }, totalRevenue: { $sum: '$items.subtotal' }, orderCount: { $sum: 1 } } },
+                { $sort: { totalRevenue: -1 } }
+            ]),
+            Order.aggregate([
+                { $match: baseMatch },
+                { $group: { _id: { $hour: '$createdAt' }, orders: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+                { $sort: { _id: 1 } }
+            ]),
+            Order.aggregate([
+                { $match: baseMatch },
+                { $group: { _id: { $dayOfWeek: '$createdAt' }, orders: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+                { $sort: { _id: 1 } }
+            ]),
+            Order.aggregate([
+                { $match: baseMatch },
+                { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, orders: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+                { $sort: { _id: 1 } }
+            ]),
+            Order.aggregate([
+                { $match: { store: storeObjectId, status: { $in: ['completed', 'delivered'] } } },
+                { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, orders: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+                { $sort: { _id: 1 } }
+            ]),
+            Order.aggregate([
+                { $match: baseMatch },
+                { $group: { _id: { $dateToString: { format: '%Y-W%V', date: '$createdAt' } }, orders: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+                { $sort: { _id: 1 } }
+            ])
+        ]);
+
+        const dayNames = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const hourlyData = Array.from({ length: 24 }, (_, i) => {
+            const f = hourly.find(h => h._id === i);
+            return { hour: i, label: `${i}:00`, orders: f?.orders || 0, revenue: f?.revenue || 0 };
+        });
+        const dayOfWeekData = Array.from({ length: 7 }, (_, i) => {
+            const f = dayOfWeek.find(d => d._id === i + 1);
+            return { day: dayNames[i + 1], orders: f?.orders || 0, revenue: f?.revenue || 0 };
+        });
+
+        const mapProduct = p => ({ name: p._id, totalQuantity: p.totalQuantity, totalRevenue: p.totalRevenue, orderCount: p.orderCount });
+
+        res.json({
+            storeName: store.name,
+            period: parseInt(period),
+            overview: overview[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0, deliveryOrders: 0, pickupOrders: 0 },
+            products: products.map(mapProduct),
+            hourlyDistribution: hourlyData,
+            dayOfWeekDistribution: dayOfWeekData,
+            dailyTrend: dailyTrend.map(d => ({ date: d._id, orders: d.orders, revenue: d.revenue })),
+            weeklyTrend: weeklyTrend.map(w => ({ week: w._id, orders: w.orders, revenue: w.revenue })),
+            monthlyTrend: monthlyTrend.map(m => ({ month: m._id, orders: m.orders, revenue: m.revenue })),
+            topProducts: products.slice(0, 5).map(mapProduct),
+            lowDemandProducts: products.slice(-5).reverse().map(mapProduct)
+        });
+    } catch (error) {
+        console.error('Store analytics error:', error);
+        res.status(500).json({ message: 'Failed to get analytics', error: error.message });
     }
 };

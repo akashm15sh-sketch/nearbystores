@@ -43,6 +43,7 @@ export interface Store {
         whatsapp?: string;
     };
     rating: number;
+    reviewCount?: number;
     distance?: number; // in meters
     isCurrentlyOpen?: boolean;
     owner?: string; // Owner user ID
@@ -139,4 +140,16 @@ export interface SalesTrend {
     date: string;
     orders: number;
     revenue: number;
+}
+
+export interface Review {
+    _id: string;
+    store: string;
+    customer: {
+        _id: string;
+        username: string;
+    };
+    rating: number;
+    comment: string;
+    createdAt: string;
 }

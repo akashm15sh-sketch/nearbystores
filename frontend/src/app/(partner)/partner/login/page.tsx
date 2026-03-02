@@ -128,18 +128,21 @@ export default function PartnerLoginPage() {
                             </div>
                         </div>
 
-                        {/* Remember Me */}
-                        <div className="flex items-center">
-                            <input
-                                type="checkbox"
-                                id="partnerRememberMe"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                                className="w-4 h-4 text-orange-600 bg-white border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
-                            />
-                            <label htmlFor="partnerRememberMe" className="ml-2 text-sm text-gray-700 cursor-pointer select-none">
-                                Remember me on this device
+                        {/* Remember Me & Forgot Password */}
+                        <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="partnerRememberMe"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    className="w-4 h-4 text-orange-600 bg-white border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
+                                />
+                                <span className="text-sm text-gray-700">Remember me</span>
                             </label>
+                            <Link href="/partner/forgot-password" className="text-sm text-orange-600 font-medium hover:text-orange-700 transition-colors">
+                                Forgot password?
+                            </Link>
                         </div>
 
                         <button

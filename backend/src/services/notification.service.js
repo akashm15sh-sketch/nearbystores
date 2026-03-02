@@ -244,6 +244,37 @@ class NotificationService {
     return this.sendEmail(email, subject, htmlContent);
   }
 
+  // Send password reset email
+  async sendPasswordResetEmail(email, resetLink) {
+    const subject = 'Reset Your Password - NearbyStores';
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background-color: #f8f9fa;">
+        <div style="max-width: 500px; margin: 40px auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+          <div style="background: linear-gradient(135deg, #f97316, #f59e0b); padding: 32px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🔐 Password Reset</h1>
+          </div>
+          <div style="padding: 32px;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
+              We received a request to reset your password. Click the button below to create a new password.
+            </p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #f97316, #f59e0b); color: white; text-decoration: none; padding: 14px 40px; border-radius: 12px; font-weight: bold; font-size: 16px;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #6B7280; font-size: 13px; text-align: center;">
+              This link expires in 1 hour. If you didn't request this, ignore this email.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    return this.sendEmail(email, subject, htmlContent);
+  }
+
   // WhatsApp notification (placeholder - requires paid service)
   async sendWhatsApp(phone, message) {
     console.log('📱 [DISABLED] WhatsApp notifications require a paid service');
