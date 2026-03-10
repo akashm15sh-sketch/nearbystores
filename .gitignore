@@ -31,5 +31,3 @@ Thumbs.db
 apk-builds/*/.gradle/
 apk-builds/*/app/build/
 apk-builds/*/*.keystore
-*.apk
-build-apks.js
