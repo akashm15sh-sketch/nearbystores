@@ -23,7 +23,7 @@ class NotificationService {
     if (!this.transporter) {
       console.log('📧 [DEMO MODE] Email would be sent to:', to);
       console.log('Subject:', subject);
-      console.log('Content:', htmlContent);
+      console.log('⚠️  Gmail not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD env vars.');
       return { success: true, demo: true };
     }
 
@@ -40,11 +40,9 @@ class NotificationService {
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error('❌ Email sending failed:', error.message);
-      // Don't throw if in development to keep the app running
-      if (process.env.NODE_ENV === 'development') {
-        return { success: false, error: error.message };
-      }
-      throw new Error('Failed to send email');
+      console.error('   Check GMAIL_USER and GMAIL_APP_PASSWORD env vars.');
+      // Return gracefully instead of throwing — don't crash the request
+      return { success: false, error: error.message };
     }
   }
 
