@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const http = require('http');
-const socketIo = require('socket.io');
 const connectDB = require('./config/database');
 
 // Import routes
@@ -16,19 +14,11 @@ const userRoutes = require('./routes/user.routes');
 
 // Initialize app
 const app = express();
-const server = http.createServer(app);
 
 // Parse allowed origins from environment
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
     .split(',')
     .map(url => url.trim());
-
-const io = socketIo(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ['GET', 'POST']
-    }
-});
 
 // Connect to database
 connectDB();
@@ -52,12 +42,12 @@ app.use(express.urlencoded({ extended: true }));
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health check (for AWS load balancer / monitoring)
+// Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
-// Routes
+// Root
 app.get('/', (req, res) => {
     res.json({
         message: '🏪 NearbyStores API',
@@ -72,6 +62,7 @@ app.get('/', (req, res) => {
     });
 });
 
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/orders', orderRoutes);
@@ -88,23 +79,6 @@ app.use('/api/analytics', analyticsRoutes);
 const reviewRoutes = require('./routes/review.routes');
 app.use('/api/reviews', reviewRoutes);
 
-// Socket.io for real-time updates
-io.on('connection', (socket) => {
-    console.log('✅ Client connected:', socket.id);
-
-    socket.on('disconnect', () => {
-        console.log('❌ Client disconnected:', socket.id);
-    });
-
-    // Listen for store status updates
-    socket.on('store-status-update', (data) => {
-        io.emit('store-status-changed', data);
-    });
-});
-
-// Make io accessible to routes
-app.set('io', io);
-
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error:', err);
@@ -117,13 +91,6 @@ app.use((err, req, res, next) => {
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ message: 'Route not found' });
-});
-
-// Start server — bind to 0.0.0.0 for EC2/container compatibility
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app;

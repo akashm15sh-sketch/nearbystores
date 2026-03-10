@@ -1,0 +1,50 @@
+
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.nearbystores.partner'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.nearbystores.partner"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        manifestPlaceholders = [
+            hostName: "nearbystores.vercel.app",
+            defaultUrl: "https://nearbystores.vercel.app/partner/login",
+            launcherName: "NS Partner",
+            assetStatements: '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "web", "site": "https://nearbystores.vercel.app" } }]'
+        ]
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('../nearbystores.keystore')
+            storePassword 'nearbystores123'
+            keyAlias 'nearbystores'
+            keyPassword 'nearbystores123'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.browser:browser:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}
